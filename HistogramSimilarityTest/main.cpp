@@ -14,39 +14,31 @@
 #include "BBox.h"
 
 int main(int argc, char *argv[]) {
-	int size = 10;
-	float range[] = { 0, 300 };
-	const float* ranges = { range };
+	if (argc < 2) {
+		return 1;
+	}
 
-	// create a histogram
-	cv::Mat data1 = (cv::Mat_<float>(1, 10) << 20, 30, 30, 40, 80, 90, 120, 120, 130, 150);
-	cv::MatND hist1;
-	cv::calcHist(&data1, 1, 0, cv::Mat(), hist1, 1, &size, &ranges, true, false);
+	RoadGraph r;
+	GraphUtil::loadRoads(r, argv[1]);
 
-	// create a histogram
-	cv::Mat data2 = (cv::Mat_<float>(1, 10) << 30, 33, 40, 70, 90, 100, 130, 135, 140, 154);
-	cv::MatND hist2;
-	cv::calcHist(&data2, 1, 0, cv::Mat(), hist2, 1, &size, &ranges, true, false);
+	cv::MatND hist[6];
+	for (int i = 0; i < 6; i++) {
+		int x = -1500 + i * 500;
+		RoadGraph patch;
+		BBox box(QVector2D(x, 0));
+		box.addPoint(QVector2D(x + 500, 500));
+		GraphUtil::copyRoads(r, patch);
+		GraphUtil::extractRoads(patch, box, false);
+		hist[i] = GraphUtil::computeEdgeLengthHistogram(patch, 10);
+		std::cout << "hist" << i << ": " << hist[i] << std::endl;
+	}
 
-	// create a histogram
-	cv::Mat data3 = (cv::Mat_<float>(1, 10) << 30, 83, 140, 170, 190, 200, 200, 205, 240, 244);
-	cv::MatND hist3;
-	cv::calcHist(&data3, 1, 0, cv::Mat(), hist3, 1, &size, &ranges, true, false);
+	for (int i = 0; i < 6; i++) {
+		std::cout << i << ": ";
+		for (int j = 0; j < i; j++) {
+			std::cout << cv::compareHist(hist[i], hist[j], 0) << ", ";
+		}
+		std::cout << std::endl;
+	}
 
-	// compute the similarity
-	float similarity = cv::compareHist(hist1, hist2, 0);
-	printf("data1 - data2: %lf\n", similarity);
-	similarity = cv::compareHist(hist2, hist3, 0);
-	printf("data2 - data3: %lf\n", similarity);
-	similarity = cv::compareHist(hist3, hist1, 0);
-	printf("data3 - data1: %lf\n", similarity);
-
-	// Display
-	/*
-	cv::flip(result, result, 1);
-	cv::namedWindow("segmentation", CV_WINDOW_AUTOSIZE|CV_WINDOW_FREERATIO);
-	cv::imshow("segmentation", result * 64);
-	*/
-
-	cv::waitKey(0);
 }
